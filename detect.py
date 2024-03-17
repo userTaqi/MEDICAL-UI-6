@@ -5,12 +5,13 @@ from ultralytics import YOLO
 import sys
 import os
 
+
 class TextAndObjectMasking:
     def __init__(self, image_path):
         self.image_path = image_path
         self.image = cv2.imread(self.image_path)
         self.text_pipeline = keras_ocr.pipeline.Pipeline()
-        self.object_model = YOLO("calModel.pt")  # Load the YOLO model with specified weights
+        self.object_model = YOLO("calModelv2.pt")  # Load the YOLO model with specified weights
 
     def detect_text_and_objects(self):
         # Detect text regions
