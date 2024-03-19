@@ -40,6 +40,7 @@ class TextAndObjectMasking:
 
         return mask
 
+
 if __name__ == "__main__":
     image_path = sys.argv[1]  # Get the image path from command-line arguments
     masking = TextAndObjectMasking(image_path)

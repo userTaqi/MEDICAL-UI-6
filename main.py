@@ -253,7 +253,14 @@ class MedicalImageAnonymizationTool:
                 self.update_progress(processed_images, total_images)
 
             def wrapper(image_path):
-                self.run_text_detection_for_image(image_path)
+                command = [sys.executable, 'detect.py', image_path]
+
+                try:
+                    subprocess.run(command, check=True)
+                    print(f"Text detection script completed successfully for image: {image_path}")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error running text detection script for image {image_path}: {e}")
+
                 update_progress()
 
             executor.map(wrapper, [os.path.join(folder_path, image_file) for image_file in image_files])
@@ -261,53 +268,8 @@ class MedicalImageAnonymizationTool:
         # Reset progress bar after completion
         self.progress_text_var.set(f"Detection Done")
         self.update_large_canvases()
-        self.show_detection_done_popup()
-
-    def show_detection_done_popup(self):
         self.progress_label.pack_forget()
         self.progress_bar.pack_forget()
-
-        '''
-        popup = tk.Toplevel()
-        popup.title("Detection Complete")
-
-        # Remove the title bar
-        popup.overrideredirect(True)
-
-        # Increase the size of the popup window
-        popup_width = 300
-        popup_height = 100
-        popup.geometry(f"{popup_width}x{popup_height}")
-
-        label = tk.Label(popup, text="Detection is Complete!", font=("Helvetica", 14))
-        label.pack(padx=20, pady=10)
-
-        button = tk.Button(popup, text="Close", command=popup.destroy)
-        button.pack(pady=5)
-
-        # Center the popup window
-        popup.update_idletasks()
-        screen_width = popup.winfo_screenwidth()
-        screen_height = popup.winfo_screenheight()
-        x = (screen_width - popup_width) // 2
-        y = (screen_height - popup_height) // 2
-        popup.geometry(f"+{x}+{y}")
-
-        # Make sure the popup window grabs focus
-        popup.grab_set()
-
-        # Wait for the popup to be closed
-        popup.wait_window()
-        '''
-
-    def run_text_detection_for_image(self, image_path):
-        command = [sys.executable, 'detect.py', image_path]
-
-        try:
-            subprocess.run(command, check=True)
-            print(f"Text detection script completed successfully for image: {image_path}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error running text detection script for image {image_path}: {e}")
 
     ###################################################################################################################
     def anonymize_images(self):

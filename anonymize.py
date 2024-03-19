@@ -14,6 +14,7 @@ class TextAnonymization:
         inpainted_image = cv2.inpaint(self.detected_image, self.text_mask, inpaintRadius=1, flags=cv2.INPAINT_TELEA)
         return inpainted_image
 
+
 if __name__ == "__main__":
     detected_image_path = sys.argv[1]  # Get the detected image path from command-line arguments
     text_mask_path = sys.argv[2]  # Get the text mask path from command-line arguments
