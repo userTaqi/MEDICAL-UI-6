@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import Menu, filedialog
+from tkinter import filedialog
 from PIL import Image, ImageTk
 import subprocess
 import sys

@@ -1,0 +1,5 @@
+tensorflow==2.15.0
+keras-ocr
+ultralytics
+opencv-python
+pillow
