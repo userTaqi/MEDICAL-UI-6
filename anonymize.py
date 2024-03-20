@@ -2,6 +2,7 @@ import sys
 import cv2
 import os
 
+
 class TextAnonymization:
     def __init__(self, detected_image_path, text_mask_path):
         self.detected_image_path = detected_image_path
@@ -15,9 +16,7 @@ class TextAnonymization:
         return inpainted_image
 
 
-if __name__ == "__main__":
-    detected_image_path = sys.argv[1]  # Get the detected image path from command-line arguments
-    text_mask_path = sys.argv[2]  # Get the text mask path from command-line arguments
+def run_anonymization(detected_image_path,text_mask_path):
 
     text_anonymization = TextAnonymization(detected_image_path, text_mask_path)
     anonymized_image = text_anonymization.inpaint_text()
@@ -32,3 +31,10 @@ if __name__ == "__main__":
     # Save the anonymized image in the 'anonymized_images' directory
     output_path = os.path.join(anonymized_images_path, f'anonymized_{os.path.basename(detected_image_path)}')
     cv2.imwrite(output_path, anonymized_image)
+
+
+if __name__ == "__main__":
+    detected_image_path = sys.argv[1]  # Get the detected image path from command-line arguments
+    text_mask_path = sys.argv[2]  # Get the text mask path from command-line arguments
+    run_anonymization(detected_image_path, text_mask_path)
+

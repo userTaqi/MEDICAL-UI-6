@@ -1,16 +1,40 @@
+import sys
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
-import subprocess
-import sys
 import threading
 import shutil
 import atexit
-from concurrent.futures import ThreadPoolExecutor
 import tkinter.ttk as ttk
 import os
 from tkinter import IntVar
+import detect
+import anonymize
 
+# Define the lock file path
+LOCK_FILE = "main.lock"
+
+# Function to check if the lock file exists
+def check_lock():
+    return os.path.exists(LOCK_FILE)
+
+# Function to create the lock file
+def create_lock():
+    with open(LOCK_FILE, "w") as f:
+        f.write(str(os.getpid()))
+
+# Function to delete the lock file
+def delete_lock():
+    if os.path.exists(LOCK_FILE):
+        os.remove(LOCK_FILE)
+
+# Check if another instance of the application is running
+if check_lock():
+    print("Another instance is already running.")
+    sys.exit(1)
+
+# Create the lock file
+create_lock()
 
 class MedicalImageAnonymizationTool:
     def __init__(self, root):
@@ -242,31 +266,24 @@ class MedicalImageAnonymizationTool:
         self.progress_label.pack(side=tk.RIGHT)
         self.progress_bar.pack(side=tk.RIGHT)
         self.progress_text_var.set("0%")
-        # Use a ThreadPool to process two images at a time
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            total_images = len(image_files)
-            processed_images = 0
 
-            def update_progress():
-                nonlocal processed_images
-                processed_images += 1
-                self.update_progress(processed_images, total_images)
+        total_images = len(image_files)
+        self.progress_bar["maximum"] = total_images
 
-            def wrapper(image_path):
-                command = [sys.executable, 'detect.py', image_path]
+        for index, image_file in enumerate(image_files, start=1):
+            try:
+                detect.run_detection(os.path.join(folder_path, image_file))  # Call the detection function
+                print(f"Text detection script completed successfully for image: {image_file}")
+            except Exception as e:
+                print(f"Error running text detection script for image {image_file}: {e}")
 
-                try:
-                    subprocess.run(command, check=True)
-                    print(f"Text detection script completed successfully for image: {image_path}")
-                except subprocess.CalledProcessError as e:
-                    print(f"Error running text detection script for image {image_path}: {e}")
-
-                update_progress()
-
-            executor.map(wrapper, [os.path.join(folder_path, image_file) for image_file in image_files])
+            self.progress_text_var.set(f"{index}/{total_images}")
+            self.progress_bar["value"] = index
+            self.progress_bar.update()
 
         # Reset progress bar after completion
-        self.progress_text_var.set(f"Detection Done")
+        self.progress_text_var.set("Detection Done")
+        self.progress_bar["value"] = total_images
         self.update_large_canvases()
         self.progress_label.pack_forget()
         self.progress_bar.pack_forget()
@@ -276,6 +293,10 @@ class MedicalImageAnonymizationTool:
         if not self.uploaded_folder_path:  # modify this to detected images path
             print("Please detect images first.")
             return
+
+        # Initialize progress bar
+        self.progress_bar['value'] = 0
+        self.progress_bar.update()
 
         # Use threading to run the anonymization script in the background
         anonymization_thread = threading.Thread(target=self.run_anonymization_script, args=(self.uploaded_folder_path,))
@@ -288,63 +309,28 @@ class MedicalImageAnonymizationTool:
         self.progress_text_var.set("0%")
         self.progress_bar['value'] = 0
 
-        for image_name in image_files:
-            image_path = os.path.join(folder_path, image_name)
-            # Use threading for each image to avoid freezing the GUI
-            threading.Thread(target=self.run_anonymization_for_image,
-                             args=(folder_path, image_name)).start()
+        total_images = len(image_files)
+        self.progress_bar["maximum"] = total_images
 
-    def run_anonymization_for_image(self, folder_path, image_name):
-        command = [sys.executable, 'anonymize.py', os.path.join(folder_path, image_name),
-                   os.path.join(folder_path, 'temp_detected', f'mask_{image_name}')]
+        for index, image_file in enumerate(image_files, start=1):
+            try:
+                anonymize.run_anonymization(os.path.join(folder_path, image_file),
+                                            os.path.join(folder_path, 'temp_detected',
+                                                         f'mask_{image_file}'))  # Call the detection function
+                print(f"Text anonymization script completed successfully for image: {image_file}")
+            except Exception as e:
+                print(f"Error running text anonymization script for image {image_file}: {e}")
 
-        try:
-            subprocess.run(command, check=True)
-            print(f"Anonymization script completed successfully for image: {image_name}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error running anonymization script for image {image_name}: {e}")
+            self.progress_text_var.set(f"{index}/{total_images}")
+            self.progress_bar["value"] = index
+            self.progress_bar.update()
 
-        self.progress_text_var.set(f"Anonymization Done")
-        self.progress_bar['value'] = 100
+        # Reset progress bar after completion
+        self.progress_text_var.set("Detection Done")
+        self.progress_bar["value"] = total_images
         self.update_large_canvases()
-        self.show_anonymization_done_popup()
-
-    def show_anonymization_done_popup(self):
         self.progress_label.pack_forget()
         self.progress_bar.pack_forget()
-
-        '''
-        popup = tk.Toplevel()
-        popup.title("anonymization Complete")
-
-        # Remove the title bar
-        popup.overrideredirect(True)
-
-        # Increase the size of the popup window
-        popup_width = 300
-        popup_height = 100
-        popup.geometry(f"{popup_width}x{popup_height}")
-
-        label = tk.Label(popup, text="Anonymization is Complete!", font=("Helvetica", 14))
-        label.pack(padx=20, pady=10)
-
-        button = tk.Button(popup, text="Close", command=popup.destroy)
-        button.pack(pady=5)
-
-        # Center the popup window
-        popup.update_idletasks()
-        screen_width = popup.winfo_screenwidth()
-        screen_height = popup.winfo_screenheight()
-        x = (screen_width - popup_width) // 2
-        y = (screen_height - popup_height) // 2
-        popup.geometry(f"+{x}+{y}")
-
-        # Make sure the popup window grabs focus
-        popup.grab_set()
-
-        # Wait for the popup to be closed
-        popup.wait_window()
-        '''
 
     ###################################################################################################################
     def display_images(self, folder_path):
@@ -542,4 +528,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = MedicalImageAnonymizationTool(root)
     atexit.register(app.cleanup)
+    atexit.register(delete_lock)
     root.mainloop()

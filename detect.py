@@ -2,9 +2,8 @@ import cv2
 import numpy as np
 import keras_ocr
 from ultralytics import YOLO
-import sys
 import os
-
+import sys
 
 class TextAndObjectMasking:
     def __init__(self, image_path):
@@ -13,15 +12,16 @@ class TextAndObjectMasking:
         self.text_pipeline = keras_ocr.pipeline.Pipeline()
         self.object_model = YOLO("calModelv2.pt")  # Load the YOLO model with specified weights
 
-    def detect_text_and_objects(self):
+    def detect_text_regions(self):
         # Detect text regions
         detected_text = self.text_pipeline.recognize([self.image_path])
         text_regions = [bbox for _, bbox in detected_text[0]]
+        return text_regions
 
+    def detect_objects(self):
         # Make predictions on the current input image for object detection
         object_results = self.object_model.predict(source=self.image_path, show=False, show_labels=False, save=False)
-
-        return text_regions, detected_text[0], object_results
+        return object_results
 
     def create_text_and_object_mask(self, text_regions, object_results):
         mask = np.zeros_like(self.image)
@@ -40,11 +40,10 @@ class TextAndObjectMasking:
 
         return mask
 
-
-if __name__ == "__main__":
-    image_path = sys.argv[1]  # Get the image path from command-line arguments
+def run_detection(image_path):
     masking = TextAndObjectMasking(image_path)
-    text_regions, detected_text, object_results = masking.detect_text_and_objects()
+    text_regions = masking.detect_text_regions()
+    object_results = masking.detect_objects()
 
     # Create the 'detected_images' directory if it doesn't exist
     detected_images_path = os.path.join(os.path.dirname(image_path), 'temp_detected')
@@ -55,6 +54,7 @@ if __name__ == "__main__":
     image_with_boxes = masking.image.copy()
 
     # Draw bounding boxes for text detection
+    detected_text = masking.text_pipeline.recognize([image_path])[0]
     for _, bbox in detected_text:
         pts = np.array(bbox, dtype=np.int32)
         pts = pts.reshape((-1, 1, 2))
@@ -73,3 +73,7 @@ if __name__ == "__main__":
     combined_mask = masking.create_text_and_object_mask(text_regions, object_results)
     mask_output_path = os.path.join(detected_images_path, f'mask_{os.path.basename(image_path)}')
     cv2.imwrite(mask_output_path, combined_mask)
+
+if __name__ == "__main__":
+    image_path = sys.argv[1]  # Get the image path from command-line arguments
+    run_detection(image_path)
