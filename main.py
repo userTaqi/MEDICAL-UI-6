@@ -56,7 +56,7 @@ class MedicalImageAnonymizationTool:
 
         # Use grid_rowconfigure and grid_columnconfigure to make frames fill the available space
         root.grid_rowconfigure(1, weight=1)
-        root.grid_rowconfigure(2, weight=12)
+        root.grid_rowconfigure(2, weight=14)
         root.grid_rowconfigure(3, weight=1)
         root.grid_columnconfigure(2, weight=1)
 
@@ -264,7 +264,7 @@ class MedicalImageAnonymizationTool:
     def run_text_detection_script(self, folder_path):
         image_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
         self.progress_label.pack(side=tk.RIGHT)
-        self.progress_bar.pack(side=tk.RIGHT, pady=10)
+        self.progress_bar.pack(side=tk.RIGHT)
         self.progress_text_var.set("0%")
 
         total_images = len(image_files)
