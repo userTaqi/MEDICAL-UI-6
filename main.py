@@ -47,7 +47,7 @@ class MedicalImageAnonymizationTool:
         uploaded_images_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
         top_buttons_frame = tk.Frame(root, bd=1, relief=tk.SOLID, bg="gray17")
         large_canvases_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
-        bottom_bar_frame = tk.Frame(root, bd=1, height=20, relief=tk.SOLID, bg="gray15")
+        bottom_bar_frame = tk.Frame(root, bd=1, relief=tk.SOLID, bg="gray15")
 
         uploaded_images_frame.grid(row=2, column=1, sticky="nsew")
         top_buttons_frame.grid(row=1, column=1, columnspan=2, sticky="nsew")
@@ -56,7 +56,7 @@ class MedicalImageAnonymizationTool:
 
         # Use grid_rowconfigure and grid_columnconfigure to make frames fill the available space
         root.grid_rowconfigure(1, weight=1)
-        root.grid_rowconfigure(2, weight=1)
+        root.grid_rowconfigure(2, weight=12)
         root.grid_rowconfigure(3, weight=1)
         root.grid_columnconfigure(2, weight=1)
 
@@ -68,7 +68,7 @@ class MedicalImageAnonymizationTool:
         toggle_canvas_button = tk.Button(top_buttons_frame, font='Helvetica 11 bold', fg="white", background="gray30",
                                          text="Show/Hide Original", command=self.toggle_large_canvas1, relief="flat",
                                          borderwidth=0, width=20)
-        toggle_canvas_button.pack(side=tk.RIGHT, padx=7)
+        toggle_canvas_button.pack(side=tk.RIGHT, padx=10)
 
         anonymize_button = tk.Button(top_buttons_frame, font='Helvetica 11 bold', fg="white", background="gray30",
                                      text="Anonymize Images", command=self.anonymize_images, relief="flat",
@@ -115,7 +115,7 @@ class MedicalImageAnonymizationTool:
         style.configure("Vertical.TScrollbar", background="white", arrowcolor="black")
 
         # Create a canvas to display images
-        self.image_canvas = tk.Canvas(uploaded_images_frame, width=243, height=600, relief=tk.SOLID,
+        self.image_canvas = tk.Canvas(uploaded_images_frame, width=243, relief=tk.SOLID,
                                       highlightthickness=0, bg="gray25")
         self.image_canvas.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -138,17 +138,17 @@ class MedicalImageAnonymizationTool:
         self.image_canvas.bind("<Leave>", self.on_canvas_leave)
 
         # Create a canvas to display images BIG
-        self.large_image_canvas1 = tk.Canvas(large_canvases_frame, width=225, height=900, relief=tk.SUNKEN,
+        self.large_image_canvas1 = tk.Canvas(large_canvases_frame, width=225, relief=tk.SUNKEN,
                                              highlightthickness=0, bg="gray30", bd=1)
         self.large_image_canvas1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.large_image_canvas1.bind("<Button-1>", self.show_large_image)
 
-        self.large_image_canvas3 = tk.Canvas(large_canvases_frame, width=225, height=900, relief=tk.SUNKEN,
+        self.large_image_canvas3 = tk.Canvas(large_canvases_frame, width=225, relief=tk.SUNKEN,
                                              highlightthickness=0, bg="gray30", bd=1)
         self.large_image_canvas3.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.large_image_canvas3.bind("<Button-1>", self.show_large_image)
 
-        self.large_image_canvas2 = tk.Canvas(large_canvases_frame, width=225, height=900, relief=tk.SUNKEN,
+        self.large_image_canvas2 = tk.Canvas(large_canvases_frame, width=225, relief=tk.SUNKEN,
                                              highlightthickness=0, bg="gray30", bd=1)
         self.large_image_canvas2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.large_image_canvas2.bind("<Button-1>", self.show_large_image)
@@ -264,7 +264,7 @@ class MedicalImageAnonymizationTool:
     def run_text_detection_script(self, folder_path):
         image_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
         self.progress_label.pack(side=tk.RIGHT)
-        self.progress_bar.pack(side=tk.RIGHT)
+        self.progress_bar.pack(side=tk.RIGHT, pady=10)
         self.progress_text_var.set("0%")
 
         total_images = len(image_files)
