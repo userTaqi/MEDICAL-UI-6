@@ -14,19 +14,23 @@ import anonymize
 # Define the lock file path
 LOCK_FILE = "main.lock"
 
+
 # Function to check if the lock file exists
 def check_lock():
     return os.path.exists(LOCK_FILE)
+
 
 # Function to create the lock file
 def create_lock():
     with open(LOCK_FILE, "w") as f:
         f.write(str(os.getpid()))
 
+
 # Function to delete the lock file
 def delete_lock():
     if os.path.exists(LOCK_FILE):
         os.remove(LOCK_FILE)
+
 
 # Check if another instance of the application is running
 if check_lock():
@@ -35,6 +39,7 @@ if check_lock():
 
 # Create the lock file
 create_lock()
+
 
 class MedicalImageAnonymizationTool:
     def __init__(self, root):
@@ -47,7 +52,7 @@ class MedicalImageAnonymizationTool:
         uploaded_images_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
         top_buttons_frame = tk.Frame(root, bd=1, relief=tk.SOLID, bg="gray17")
         large_canvases_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
-        bottom_bar_frame = tk.Frame(root, bd=1, relief=tk.SOLID, bg="gray15")
+        bottom_bar_frame = tk.Frame(root, bd=1, height=20, relief=tk.SOLID, bg="gray15")
 
         uploaded_images_frame.grid(row=2, column=1, sticky="nsew")
         top_buttons_frame.grid(row=1, column=1, columnspan=2, sticky="nsew")
@@ -265,20 +270,24 @@ class MedicalImageAnonymizationTool:
         image_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
         self.progress_label.pack(side=tk.RIGHT)
         self.progress_bar.pack(side=tk.RIGHT)
-        self.progress_text_var.set("0%")
 
         total_images = len(image_files)
+        self.progress_text_var.set("0/" + str(total_images))
+
         self.progress_bar["maximum"] = total_images
 
-        for index, image_file in enumerate(image_files, start=1):
-            try:
-                detect.run_detection(os.path.join(folder_path, image_file))  # Call the detection function
-                print(f"Text detection script completed successfully for image: {image_file}")
-            except Exception as e:
-                print(f"Error running text detection script for image {image_file}: {e}")
+        batch_size = 2  # Change this to whatever batch size you want
+        for index in range(0, total_images, batch_size):
+            batch_files = image_files[index:index + batch_size]
+            for image_file in batch_files:
+                try:
+                    detect.run_detection(os.path.join(folder_path, image_file))  # Call the detection function
+                    print(f"Text detection script completed successfully for image: {image_file}")
+                except Exception as e:
+                    print(f"Error running text detection script for image {image_file}: {e}")
 
-            self.progress_text_var.set(f"{index}/{total_images}")
-            self.progress_bar["value"] = index
+            self.progress_text_var.set(f"{index + batch_size}/{total_images}")
+            self.progress_bar["value"] = min(index + batch_size, total_images)
             self.progress_bar.update()
 
         # Reset progress bar after completion
@@ -306,10 +315,11 @@ class MedicalImageAnonymizationTool:
         image_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
         self.progress_label.pack(side=tk.RIGHT)
         self.progress_bar.pack(side=tk.RIGHT)
-        self.progress_text_var.set("0%")
-        self.progress_bar['value'] = 0
 
         total_images = len(image_files)
+        self.progress_text_var.set("0/" + str(total_images))
+        self.progress_bar['value'] = 0
+
         self.progress_bar["maximum"] = total_images
 
         for index, image_file in enumerate(image_files, start=1):
@@ -388,7 +398,8 @@ class MedicalImageAnonymizationTool:
                     )
 
                     original_img = Image.open(os.path.join(self.uploaded_folder_path, image_file))
-                    original_img.thumbnail((530, 530))  # Resize image if needed
+                    original_img.thumbnail((self.large_image_canvas2.winfo_width() / 1.05,
+                                            self.large_image_canvas2.winfo_height() / 1.05))  # Resize image if needed
                     original_photo = ImageTk.PhotoImage(original_img)
 
                     self.large_image_canvas1.delete("all")
@@ -406,7 +417,8 @@ class MedicalImageAnonymizationTool:
                     masked_image_path = os.path.join(self.uploaded_folder_path, 'temp_detected', masked_image_name)
                     if os.path.exists(masked_image_path):
                         masked_img = Image.open(masked_image_path)
-                        masked_img.thumbnail((530, 530))
+                        masked_img.thumbnail((self.large_image_canvas2.winfo_width() / 1.05,
+                                              self.large_image_canvas2.winfo_height() / 1.05))
                         masked_photo = ImageTk.PhotoImage(masked_img)
 
                         # Update canvas2 after calling update_idletasks()
@@ -423,7 +435,8 @@ class MedicalImageAnonymizationTool:
                                                          anonymized_image_name)
                     if os.path.exists(anonymized_image_path):
                         anonymized_img = Image.open(anonymized_image_path)
-                        anonymized_img.thumbnail((530, 530))
+                        anonymized_img.thumbnail((self.large_image_canvas2.winfo_width() / 1.05,
+                                                  self.large_image_canvas2.winfo_height() / 1.05))
                         anonymized_photo = ImageTk.PhotoImage(anonymized_img)
 
                         # Update canvas3 after calling update_idletasks()
