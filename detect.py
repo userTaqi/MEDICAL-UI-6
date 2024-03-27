@@ -45,10 +45,13 @@ def run_detection(image_path):
     text_regions = masking.detect_text_regions()
     object_results = masking.detect_objects()
 
-    # Create the 'detected_images' directory if it doesn't exist
-    detected_images_path = os.path.join(os.path.dirname(image_path), 'temp_detected')
-    if not os.path.exists(detected_images_path):
-        os.makedirs(detected_images_path)
+    # Create the 'temp_detected' and 'temp_masked' directories if they don't exist
+    temp_detected_path = os.path.join(os.path.dirname(image_path), 'temp_detected')
+    if not os.path.exists(temp_detected_path):
+        os.makedirs(temp_detected_path)
+    temp_masked_path = os.path.join(os.path.dirname(image_path), 'temp_masked')
+    if not os.path.exists(temp_masked_path):
+        os.makedirs(temp_masked_path)
 
     # Save the image with bounding boxes for both text and object detection
     image_with_boxes = masking.image.copy()
@@ -66,12 +69,12 @@ def run_detection(image_path):
             x_min, y_min, x_max, y_max = map(int, bbox)
             cv2.rectangle(image_with_boxes, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
 
-    boxes_output_path = os.path.join(detected_images_path, f'boxes_{os.path.basename(image_path)}')
+    boxes_output_path = os.path.join(temp_detected_path, f'boxes_{os.path.basename(image_path)}')
     cv2.imwrite(boxes_output_path, image_with_boxes)
 
     # Save the image with combined masks
     combined_mask = masking.create_text_and_object_mask(text_regions, object_results)
-    mask_output_path = os.path.join(detected_images_path, f'mask_{os.path.basename(image_path)}')
+    mask_output_path = os.path.join(temp_masked_path, f'mask_{os.path.basename(image_path)}')
     cv2.imwrite(mask_output_path, combined_mask)
 
 if __name__ == "__main__":
