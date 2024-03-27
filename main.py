@@ -46,7 +46,7 @@ class MedicalImageAnonymizationTool:
         self.root = root
         self.root.title("Ultrasound Anonymization Tool")
         self.root.state('zoomed')  # Maximize the window
-        self.uploaded_folder_path = None  # Initialize the variable to store the folder path
+        self.uploaded_folder_paths = []  # Initialize the list to store folder paths
 
         # Create frames with specified background colors
         uploaded_images_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
@@ -215,7 +215,7 @@ class MedicalImageAnonymizationTool:
     ###################################################################################################################
 
     def save_anonymized_images(self):
-        if not self.uploaded_folder_path:
+        if not self.uploaded_folder_paths[-1]:
             print("Please anonymize images first.")
             return
 
@@ -230,7 +230,7 @@ class MedicalImageAnonymizationTool:
 
     def save_anonymized_images_script(self, save_folder):
         # Copy anonymized images to the selected destination folder
-        anonymized_folder_path = os.path.join(self.uploaded_folder_path, 'temp_anonymized')
+        anonymized_folder_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_anonymized')
         if os.path.exists(anonymized_folder_path):
             for file_name in os.listdir(anonymized_folder_path):
                 file_path = os.path.join(anonymized_folder_path, file_name)
@@ -243,10 +243,9 @@ class MedicalImageAnonymizationTool:
 
     ###################################################################################################################
     def upload_images(self):
-        self.cleanup()
         folder_path = filedialog.askdirectory(title="Select Folder")
         if folder_path:
-            self.uploaded_folder_path = folder_path  # Save the folder path
+            self.uploaded_folder_paths.append(folder_path)  # Append the folder path to the list
             # Use threading to run the display_images method in the background
             display_thread = threading.Thread(target=self.display_images, args=(folder_path,))
             display_thread.start()
@@ -254,7 +253,7 @@ class MedicalImageAnonymizationTool:
 
     ###################################################################################################################
     def detect_images(self):
-        if not self.uploaded_folder_path:
+        if not self.uploaded_folder_paths[-1]:
             print("Please upload images first.")
             return
 
@@ -263,7 +262,7 @@ class MedicalImageAnonymizationTool:
         self.progress_bar.update()
 
         # Use threading to run the text detection script in the background
-        detection_thread = threading.Thread(target=self.run_text_detection_script, args=(self.uploaded_folder_path,))
+        detection_thread = threading.Thread(target=self.run_text_detection_script, args=(self.uploaded_folder_paths[-1],))
         detection_thread.start()
 
     def run_text_detection_script(self, folder_path):
@@ -299,7 +298,7 @@ class MedicalImageAnonymizationTool:
 
     ###################################################################################################################
     def anonymize_images(self):
-        if not self.uploaded_folder_path:  # modify this to detected images path
+        if not self.uploaded_folder_paths[-1]:  # modify this to detected images path
             print("Please detect images first.")
             return
 
@@ -308,7 +307,7 @@ class MedicalImageAnonymizationTool:
         self.progress_bar.update()
 
         # Use threading to run the anonymization script in the background
-        anonymization_thread = threading.Thread(target=self.run_anonymization_script, args=(self.uploaded_folder_path,))
+        anonymization_thread = threading.Thread(target=self.run_anonymization_script, args=(self.uploaded_folder_paths[-1],))
         anonymization_thread.start()
 
     def run_anonymization_script(self, folder_path):
@@ -397,7 +396,7 @@ class MedicalImageAnonymizationTool:
                         bbox, outline="red", width=2, tags="highlight_rectangle"
                     )
 
-                    original_img = Image.open(os.path.join(self.uploaded_folder_path, image_file))
+                    original_img = Image.open(os.path.join(self.uploaded_folder_paths[-1], image_file))
                     original_img.thumbnail((self.large_image_canvas2.winfo_width() / 1.05,
                                             self.large_image_canvas2.winfo_height() / 1.05))  # Resize image if needed
                     original_photo = ImageTk.PhotoImage(original_img)
@@ -414,7 +413,7 @@ class MedicalImageAnonymizationTool:
 
                     # Update canvas2 with masked image
                     masked_image_name = f"boxes_{original_image_name}"
-                    masked_image_path = os.path.join(self.uploaded_folder_path, 'temp_detected', masked_image_name)
+                    masked_image_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_detected', masked_image_name)
                     if os.path.exists(masked_image_path):
                         masked_img = Image.open(masked_image_path)
                         masked_img.thumbnail((self.large_image_canvas2.winfo_width() / 1.05,
@@ -431,7 +430,7 @@ class MedicalImageAnonymizationTool:
 
                     # Update canvas3 with anonymized image
                     anonymized_image_name = f"anonymized_{original_image_name}"
-                    anonymized_image_path = os.path.join(self.uploaded_folder_path, 'temp_anonymized',
+                    anonymized_image_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_anonymized',
                                                          anonymized_image_name)
                     if os.path.exists(anonymized_image_path):
                         anonymized_img = Image.open(anonymized_image_path)
@@ -456,7 +455,7 @@ class MedicalImageAnonymizationTool:
                 original_image_name = tags[0]
 
                 # Update canvas1 with original image
-                original_image_path = os.path.join(self.uploaded_folder_path, original_image_name)
+                original_image_path = os.path.join(self.uploaded_folder_paths[-1], original_image_name)
                 if os.path.exists(original_image_path):
                     original_img = Image.open(original_image_path)
                     self.large_image_canvas1.update_idletasks()
@@ -474,7 +473,7 @@ class MedicalImageAnonymizationTool:
 
                 # Update canvas2 with masked image
                 masked_image_name = f"boxes_{original_image_name}"
-                masked_image_path = os.path.join(self.uploaded_folder_path, 'temp_detected', masked_image_name)
+                masked_image_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_detected', masked_image_name)
                 if os.path.exists(masked_image_path):
                     masked_img = Image.open(masked_image_path)
                     self.large_image_canvas2.update_idletasks()
@@ -492,7 +491,7 @@ class MedicalImageAnonymizationTool:
 
                 # Update canvas3 with anonymized image
                 anonymized_image_name = f"anonymized_{original_image_name}"
-                anonymized_image_path = os.path.join(self.uploaded_folder_path, 'temp_anonymized',
+                anonymized_image_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_anonymized',
                                                      anonymized_image_name)
                 if os.path.exists(anonymized_image_path):
                     anonymized_img = Image.open(anonymized_image_path)
@@ -517,24 +516,18 @@ class MedicalImageAnonymizationTool:
         self.progress_bar.update()
 
     def cleanup(self):
-        # Check if uploaded_folder_path is provided
-        if not self.uploaded_folder_path:
-            print("Error: No path provided for cleanup.")
-            return
+        # Iterate over all folder paths and perform cleanup
+        for folder_path in self.uploaded_folder_paths:
+            detected_images_path = os.path.join(folder_path, 'temp_detected')
+            anonymized_images_path = os.path.join(folder_path, 'temp_anonymized')
 
-        # This function will be called when the program exits
-        detected_images_path = os.path.join(self.uploaded_folder_path, 'temp_detected')
-        anonymized_images_path = os.path.join(self.uploaded_folder_path, 'temp_anonymized')
+            # Check if the 'temp_detected' directory exists, and delete it
+            if os.path.exists(detected_images_path):
+                shutil.rmtree(detected_images_path)
 
-        # Check if the 'temp_detected' directory exists, and delete it
-        if os.path.exists(detected_images_path):
-            shutil.rmtree(detected_images_path)
-
-        # Check if the 'temp_anonymized' directory exists, and delete it
-        if os.path.exists(anonymized_images_path):
-            shutil.rmtree(anonymized_images_path)
-
-        # sys.exit()
+            # Check if the 'temp_anonymized' directory exists, and delete it
+            if os.path.exists(anonymized_images_path):
+                shutil.rmtree(anonymized_images_path)
 
 
 if __name__ == "__main__":
