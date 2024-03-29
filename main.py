@@ -133,7 +133,7 @@ class MedicalImageAnonymizationTool:
         self.label00.place(in_=self.image_canvas, anchor="center", relx=0.5, rely=0.5, y=0)
 
         # Apply hover effect to buttons
-        for button in [upload_button, detect_button, anonymize_button, toggle_canvas_button]:
+        for button in [upload_button, detect_button, anonymize_button, toggle_canvas_button, select_options_button]:
             button.bind('<Enter>', on_hover)
             button.bind('<Leave>', on_leave)
 
@@ -195,14 +195,17 @@ class MedicalImageAnonymizationTool:
 
         # Add checkboxes
         self.check_var1 = tk.IntVar()
+        self.check_var2 = tk.IntVar()
         self.check_var3 = tk.IntVar()
         self.check_var4 = tk.IntVar()
 
         checkbox1 = tk.Checkbutton(self.checkbox_window, text="Masked Images", variable=self.check_var1)
+        checkbox2 = tk.Checkbutton(self.checkbox_window, text="Bounding Box Coordinates", variable=self.check_var2)
         checkbox3 = tk.Checkbutton(self.checkbox_window, text="Bounding Box Images", variable=self.check_var3)
         checkbox4 = tk.Checkbutton(self.checkbox_window, text="Anonymized Images", variable=self.check_var4)
 
         checkbox1.pack(anchor=tk.W)
+        checkbox2.pack(anchor=tk.W)
         checkbox3.pack(anchor=tk.W)
         checkbox4.pack(anchor=tk.W)
 
@@ -280,6 +283,17 @@ class MedicalImageAnonymizationTool:
                 return
             selected_options.append('temp_masked')
 
+        if self.check_var2.get() == 1:
+
+            # Save Masked Images
+            print("Saving Bounding Box Coordinates...")
+            directory_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_coordinates')
+            print(directory_path)
+            if not os.path.exists(directory_path) and os.path.isdir(directory_path):
+                print("Please Detect images first.")
+                return
+            selected_options.append('temp_coordinates')
+
         if self.check_var3.get() == 1:
             # Save Bounding Box Images
             print("Saving Bounding Box Images...")
@@ -309,7 +323,8 @@ class MedicalImageAnonymizationTool:
         folder_names = {
             'temp_masked': 'masked_images',
             'temp_detected': 'detected_images',
-            'temp_anonymized': 'anonymized_images'
+            'temp_anonymized': 'anonymized_images',
+            'temp_coordinates': 'bounding_box_Coordinates'
         }
 
         # Ask user to select the destination folder for saving images
@@ -623,6 +638,7 @@ class MedicalImageAnonymizationTool:
             detected_images_path = os.path.join(folder_path, 'temp_detected')
             anonymized_images_path = os.path.join(folder_path, 'temp_anonymized')
             masked_images_path = os.path.join(folder_path, 'temp_masked')
+            coordinates_images_path = os.path.join(folder_path, 'temp_coordinates')
 
             # Check if the 'temp_detected' directory exists, and delete it
             if os.path.exists(detected_images_path):
@@ -635,6 +651,10 @@ class MedicalImageAnonymizationTool:
             # Check if the 'masked_anonymized' directory exists, and delete it
             if os.path.exists(masked_images_path):
                 shutil.rmtree(masked_images_path)
+
+            # Check if the 'masked_anonymized' directory exists, and delete it
+            if os.path.exists(coordinates_images_path):
+                shutil.rmtree(coordinates_images_path)
 
 
 if __name__ == "__main__":
