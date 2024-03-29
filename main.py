@@ -324,7 +324,7 @@ class MedicalImageAnonymizationTool:
             'temp_masked': 'masked_images',
             'temp_detected': 'detected_images',
             'temp_anonymized': 'anonymized_images',
-            'temp_coordinates': 'bounding_box_Coordinates'
+            'temp_coordinates': 'bounding_box_coordinates'
         }
 
         # Ask user to select the destination folder for saving images
