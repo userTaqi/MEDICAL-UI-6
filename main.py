@@ -67,7 +67,7 @@ class MainApplication:
 
         self.open_button = tk.Button(self.root, text="Get Started", command=self.open_main_py_and_close_gui,
                                      **button_style)
-        self.open_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
+        self.open_button.place(relx=0.82, rely=0.9)
 
         self.close_button = tk.Button(self.root, text="X", command=self.close_gui, **button_style, width=2, height=1)
         self.close_button.pack(side=tk.RIGHT, padx=5, pady=10, anchor=tk.NE)
