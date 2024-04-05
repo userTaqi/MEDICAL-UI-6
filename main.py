@@ -41,6 +41,63 @@ if check_lock():
 create_lock()
 
 
+class MainApplication:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Main Application")
+        self.root.overrideredirect(True)
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        half_width = screen_width // 2
+        half_height = screen_height // 2
+
+        self.root.geometry(f"{half_width}x{half_height}+{half_width // 2}+{half_height // 2}")
+
+        button_style = {
+            "bg": "#838B8B",
+            "fg": "white",
+            "font": ("Arial", 12),
+            "bd": 1,
+            "activebackground": "#838B8B",
+            "activeforeground": "white"
+        }
+
+        self.load_image()
+
+        self.open_button = tk.Button(self.root, text="Get Started", command=self.open_main_py_and_close_gui,
+                                     **button_style)
+        self.open_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
+
+        self.close_button = tk.Button(self.root, text="X", command=self.close_gui, **button_style, width=2, height=1)
+        self.close_button.pack(side=tk.RIGHT, padx=5, pady=10, anchor=tk.NE)
+
+    def open_main_py_and_close_gui(self):
+        self.root.destroy()
+        root = tk.Tk()
+        app = MedicalImageAnonymizationTool(root)
+        atexit.register(app.cleanup)
+        atexit.register(delete_lock)
+        root.mainloop()
+
+    def load_image(self):
+        image = Image.open("image.png")
+        screen_width = self.root.winfo_screenwidth() // 2
+        screen_height = self.root.winfo_screenheight() // 2
+        image = image.resize((screen_width, screen_height))
+        photo = ImageTk.PhotoImage(image)
+        self.image_label = tk.Label(self.root, image=photo)
+        self.image_label.image = photo
+        self.image_label.place(x=0, y=0)
+
+    def close_gui(self):
+        delete_lock()
+        self.root.destroy()
+
+    def run(self):
+        self.root.mainloop()
+
+
 class MedicalImageAnonymizationTool:
     def __init__(self, root):
         self.root = root
@@ -658,8 +715,5 @@ class MedicalImageAnonymizationTool:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = MedicalImageAnonymizationTool(root)
-    atexit.register(app.cleanup)
-    atexit.register(delete_lock)
-    root.mainloop()
+    app = MainApplication()
+    app.run()
