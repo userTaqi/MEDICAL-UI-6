@@ -153,7 +153,7 @@ class MedicalImageAnonymizationTool:
         upload_button.pack(side=tk.RIGHT, padx=10)
 
         program_label = tk.Label(top_buttons_frame, font='Helvetica 17 bold', fg="white", background="gray17",
-                                 text="Ultrasound Anonymization Tool")
+                                 text="UA Tool")
         program_label.pack(side=tk.LEFT, padx=10)
 
         # Create a hover effect function
