@@ -153,7 +153,7 @@ class MedicalImageAnonymizationTool:
         upload_button.pack(side=tk.RIGHT, padx=10)
 
         program_label = tk.Label(top_buttons_frame, font='Helvetica 17 bold', fg="white", background="gray17",
-                                 text="UA Tool")
+                                 text="UA TOOL")
         program_label.pack(side=tk.LEFT, padx=10)
 
         # Create a hover effect function
@@ -307,7 +307,7 @@ class MedicalImageAnonymizationTool:
             self.large_canvas1_enabled.set(1)
             self.update_large_canvases()
 
-    ###############################################################################################
+    ###################################################################################################################
     def on_canvas_enter(self, event):
         self.image_canvas.bind("<MouseWheel>", self.on_mousewheel)
 
