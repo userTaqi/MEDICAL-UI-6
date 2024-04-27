@@ -5,12 +5,64 @@ from ultralytics import YOLO
 import os
 import sys
 
+# Function to calculate distance between two points
+def distance(p1, p2):
+    return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
+
+# Function to detect connected components and update the mask
+def detect_connected_components(binary_image, mask, min_size=1, max_size=20, min_distance=20):
+    # Connected Component Analysis
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_image, connectivity=8)
+
+    # List to store the bounding boxes of connected components
+    bounding_boxes = []
+
+    # Iterate through connected components
+    for label in range(1, num_labels):
+        # Filter components based on size
+        if min_size <= stats[label, cv2.CC_STAT_AREA] <= max_size:
+            x, y, w, h = stats[label, cv2.CC_STAT_LEFT], stats[label, cv2.CC_STAT_TOP], stats[label, cv2.CC_STAT_WIDTH], stats[label, cv2.CC_STAT_HEIGHT]
+            bounding_boxes.append((x, y, w, h))
+
+    # List to store indices of components that should be detected
+    detected_indices = []
+
+    # Iterate through bounding boxes
+    for i, (x1, y1, w1, h1) in enumerate(bounding_boxes):
+        # Flag to indicate if a nearby component is found
+        nearby_found = False
+
+        # Calculate centroid of the current component
+        centroid1 = (x1 + w1 // 2, y1 + h1 // 2)
+
+        # Check against other bounding boxes
+        for j, (x2, y2, w2, h2) in enumerate(bounding_boxes):
+            if i != j:  # Skip self-comparison
+                # Calculate centroid of the other component
+                centroid2 = (x2 + w2 // 2, y2 + h2 // 2)
+                # Calculate distance between centroids
+                if distance(centroid1, centroid2) < min_distance:  # Check against distance threshold
+                    nearby_found = True
+                    break
+
+        if nearby_found:
+            detected_indices.append(i)
+
+    # Draw detected objects on the mask
+    for index in detected_indices:
+        x, y, w, h = bounding_boxes[index]
+        cv2.rectangle(mask, (x, y), (x + w, y + h), 255, -1)
+
+    return mask
+
+
 class TextAndObjectMasking:
     def __init__(self, image_path):
         self.image_path = image_path
         self.image = cv2.imread(self.image_path)
         self.text_pipeline = keras_ocr.pipeline.Pipeline()
         self.object_model = YOLO("calModelv2.pt")  # Load the YOLO model with specified weights
+        self.thresholds = [200, 140, 80, 90, 100, 70]  # Threshold values
 
     def detect_text_regions(self):
         # Detect text regions
@@ -37,6 +89,14 @@ class TextAndObjectMasking:
             for bbox in r.boxes.xyxy:
                 x_min, y_min, x_max, y_max = map(int, bbox)
                 cv2.rectangle(mask, (x_min, y_min), (x_max, y_max), (255), -1)
+
+        # Convert image to grayscale
+        gray_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+
+        # Apply thresholding using each threshold value and combine masks
+        for threshold in self.thresholds:
+            _, binary_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
+            mask = detect_connected_components(binary_image, mask)
 
         return mask
 
@@ -84,8 +144,6 @@ def run_detection(image_path):
     combined_mask = masking.create_text_and_object_mask(text_regions, object_results)
     mask_output_path = os.path.join(temp_masked_path, f'mask_{os.path.basename(image_path)}')
     cv2.imwrite(mask_output_path, combined_mask)
-
-
 
 if __name__ == "__main__":
     image_path = sys.argv[1]  # Get the image path from command-line arguments
