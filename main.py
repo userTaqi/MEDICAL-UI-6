@@ -10,6 +10,8 @@ import os
 from tkinter import IntVar
 import detect
 import anonymize
+import tkinter.messagebox as tkMessageBox
+
 
 # Define the lock file path
 LOCK_FILE = "main.lock"
@@ -104,6 +106,7 @@ class MedicalImageAnonymizationTool:
         self.root.title("Ultrasound Anonymization Tool")
         self.root.state('zoomed')  # Maximize the window
         self.uploaded_folder_paths = []  # Initialize the list to store folder paths
+        self.detection_in_progress = False  # Flag to track detection progress
 
         # Create frames with specified background colors
         uploaded_images_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
@@ -243,6 +246,16 @@ class MedicalImageAnonymizationTool:
         self.image_canvas.bind("<Up>", self.on_arrow_key)
         self.image_canvas.bind("<Down>", self.on_arrow_key)
         self.image_canvas.focus_set()
+
+        # handle window closing event
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    ###################################################################################################################
+    def on_closing(self):
+        if self.detection_in_progress:
+            tkMessageBox.showinfo("Detection in Progress", "Cannot close window. Detection process is in progress.")
+        else:
+            self.root.destroy()
 
     ###################################################################################################################
     def open_checkbox_selection(self):
@@ -431,6 +444,9 @@ class MedicalImageAnonymizationTool:
             print("Please upload images first.")
             return
 
+        # Set detection flag to True
+        self.detection_in_progress = True
+
         # Initialize progress bar
         self.progress_bar['value'] = 0
         self.progress_bar.update()
@@ -470,10 +486,18 @@ class MedicalImageAnonymizationTool:
         self.progress_label.pack_forget()
         self.progress_bar.pack_forget()
 
+        # Set detection flag to False after completion
+        self.detection_in_progress = False
+
     ###################################################################################################################
     def anonymize_images(self):
         if not self.uploaded_folder_paths[-1]:  # modify this to detected images path
             print("Please detect images first.")
+            return
+
+        # Check if the detection process is active
+        if self.progress_text_var.get() != "Detection Done":
+            print("Detection process is active. Cannot anonymize images while detection is in progress.")
             return
 
         # Initialize progress bar
@@ -481,7 +505,8 @@ class MedicalImageAnonymizationTool:
         self.progress_bar.update()
 
         # Use threading to run the anonymization script in the background
-        anonymization_thread = threading.Thread(target=self.run_anonymization_script, args=(self.uploaded_folder_paths[-1],))
+        anonymization_thread = threading.Thread(target=self.run_anonymization_script,
+                                                args=(self.uploaded_folder_paths[-1],))
         anonymization_thread.start()
 
     def run_anonymization_script(self, folder_path):
