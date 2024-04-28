@@ -10,6 +10,8 @@ import os
 from tkinter import IntVar
 import detect
 import anonymize
+import tkinter.messagebox as tkMessageBox
+
 
 # Define the lock file path
 LOCK_FILE = "main.lock"
@@ -41,12 +43,70 @@ if check_lock():
 create_lock()
 
 
+class MainApplication:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Main Application")
+        self.root.overrideredirect(True)
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        half_width = screen_width // 2
+        half_height = screen_height // 2
+
+        self.root.geometry(f"{half_width}x{half_height}+{half_width // 2}+{half_height // 2}")
+
+        button_style = {
+            "bg": "#838B8B",
+            "fg": "white",
+            "font": ("Arial", 12),
+            "bd": 1,
+            "activebackground": "#838B8B",
+            "activeforeground": "white"
+        }
+
+        self.load_image()
+
+        self.open_button = tk.Button(self.root, text="Get Started", command=self.open_main_py_and_close_gui,
+                                     **button_style)
+        self.open_button.place(relx=0.82, rely=0.9)
+
+        self.close_button = tk.Button(self.root, text="X", command=self.close_gui, **button_style, width=2, height=1)
+        self.close_button.pack(side=tk.RIGHT, padx=5, pady=10, anchor=tk.NE)
+
+    def open_main_py_and_close_gui(self):
+        self.root.destroy()
+        root = tk.Tk()
+        app = MedicalImageAnonymizationTool(root)
+        atexit.register(app.cleanup)
+        atexit.register(delete_lock)
+        root.mainloop()
+
+    def load_image(self):
+        image = Image.open("image.png")
+        screen_width = self.root.winfo_screenwidth() // 2
+        screen_height = self.root.winfo_screenheight() // 2
+        image = image.resize((screen_width, screen_height))
+        photo = ImageTk.PhotoImage(image)
+        self.image_label = tk.Label(self.root, image=photo)
+        self.image_label.image = photo
+        self.image_label.place(x=0, y=0)
+
+    def close_gui(self):
+        delete_lock()
+        self.root.destroy()
+
+    def run(self):
+        self.root.mainloop()
+
+
 class MedicalImageAnonymizationTool:
     def __init__(self, root):
         self.root = root
         self.root.title("Ultrasound Anonymization Tool")
         self.root.state('zoomed')  # Maximize the window
         self.uploaded_folder_paths = []  # Initialize the list to store folder paths
+        self.detection_in_progress = False  # Flag to track detection progress
 
         # Create frames with specified background colors
         uploaded_images_frame = tk.Frame(root, bd=1, relief=tk.SOLID)
@@ -65,9 +125,13 @@ class MedicalImageAnonymizationTool:
         root.grid_rowconfigure(3, weight=1)
         root.grid_columnconfigure(2, weight=1)
 
-        save_button = tk.Button(top_buttons_frame, font='Helvetica 11 bold', fg="white", background="gray30",
-                                text="Save", command=self.save_anonymized_images, relief="flat", borderwidth=0, width=6)
-        save_button.pack(side=tk.RIGHT, padx=10)
+        # Add a button to open the checkbox selection window
+        select_options_button = tk.Button(top_buttons_frame, font='Helvetica 11 bold', fg="white",
+                                               background="gray30",
+                                               text="Save Options", command=self.open_checkbox_selection,
+                                               relief="flat",
+                                               borderwidth=0)
+        select_options_button.pack(side=tk.RIGHT, padx=10)
 
         # Add a button to top_buttons_frame to enable/disable large_image_canvas1
         toggle_canvas_button = tk.Button(top_buttons_frame, font='Helvetica 11 bold', fg="white", background="gray30",
@@ -92,7 +156,7 @@ class MedicalImageAnonymizationTool:
         upload_button.pack(side=tk.RIGHT, padx=10)
 
         program_label = tk.Label(top_buttons_frame, font='Helvetica 17 bold', fg="white", background="gray17",
-                                 text="Ultrasound Anonymization Tool")
+                                 text="UA TOOL")
         program_label.pack(side=tk.LEFT, padx=10)
 
         # Create a hover effect function
@@ -129,7 +193,7 @@ class MedicalImageAnonymizationTool:
         self.label00.place(in_=self.image_canvas, anchor="center", relx=0.5, rely=0.5, y=0)
 
         # Apply hover effect to buttons
-        for button in [upload_button, detect_button, anonymize_button, toggle_canvas_button, save_button]:
+        for button in [upload_button, detect_button, anonymize_button, toggle_canvas_button, select_options_button]:
             button.bind('<Enter>', on_hover)
             button.bind('<Leave>', on_leave)
 
@@ -183,7 +247,67 @@ class MedicalImageAnonymizationTool:
         self.image_canvas.bind("<Down>", self.on_arrow_key)
         self.image_canvas.focus_set()
 
+        # handle window closing event
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
     ###################################################################################################################
+    def on_closing(self):
+        if self.detection_in_progress:
+            tkMessageBox.showinfo("Detection in Progress", "Cannot close window. Detection process is in progress.")
+        else:
+            self.root.destroy()
+
+    ###################################################################################################################
+    def open_checkbox_selection(self):
+        # Function to open the checkbox selection window
+        self.checkbox_window = tk.Toplevel()
+        self.checkbox_window.overrideredirect(True)  # Remove title bar
+
+        # Add checkboxes
+        self.check_var1 = tk.IntVar()
+        self.check_var2 = tk.IntVar()
+        self.check_var3 = tk.IntVar()
+        self.check_var4 = tk.IntVar()
+
+        checkbox1 = tk.Checkbutton(self.checkbox_window, text="Masked Images", variable=self.check_var1)
+        checkbox2 = tk.Checkbutton(self.checkbox_window, text="Bounding Box Coordinates", variable=self.check_var2)
+        checkbox3 = tk.Checkbutton(self.checkbox_window, text="Bounding Box Images", variable=self.check_var3)
+        checkbox4 = tk.Checkbutton(self.checkbox_window, text="Anonymized Images", variable=self.check_var4)
+
+        checkbox1.pack(anchor=tk.W)
+        checkbox2.pack(anchor=tk.W)
+        checkbox3.pack(anchor=tk.W)
+        checkbox4.pack(anchor=tk.W)
+
+        # Add a frame to hold buttons
+        button_frame = tk.Frame(self.checkbox_window)
+        button_frame.pack(pady=10)  # Add padding between checkboxes and buttons
+
+        # Add a button to confirm selections
+        confirm_button = tk.Button(button_frame, text="Save", command=self.save_images)
+        confirm_button.pack(side=tk.LEFT)
+
+        # Add a close button
+        close_button = tk.Button(button_frame, text="Close", command=self.close_checkbox_window)
+        close_button.pack(side=tk.LEFT)
+
+        # Update the size and position of the window based on widget dimensions
+        self.checkbox_window.update_idletasks()  # Update idle tasks to ensure proper geometry calculation
+        window_width = self.checkbox_window.winfo_reqwidth()
+        window_height = self.checkbox_window.winfo_reqheight()
+
+        # Calculate the center position of the screen
+        screen_width = self.checkbox_window.winfo_screenwidth()
+        screen_height = self.checkbox_window.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+
+        # Set the window geometry to appear in the center of the screen
+        self.checkbox_window.geometry(f'+{x}+{y}')
+
+    def close_checkbox_window(self):
+        self.checkbox_window.destroy()
+
     def toggle_large_canvas1(self):
         if self.large_canvas1_enabled.get():
             # Disable large_image_canvas1
@@ -196,7 +320,7 @@ class MedicalImageAnonymizationTool:
             self.large_canvas1_enabled.set(1)
             self.update_large_canvases()
 
-    ###############################################################################################
+    ###################################################################################################################
     def on_canvas_enter(self, event):
         self.image_canvas.bind("<MouseWheel>", self.on_mousewheel)
 
@@ -214,37 +338,100 @@ class MedicalImageAnonymizationTool:
 
     ###################################################################################################################
 
-    def save_anonymized_images(self):
-        if not self.uploaded_folder_paths[-1]:
-            print("Please anonymize images first.")
+    def save_images(self):
+        self.checkbox_window.destroy()
+        selected_options = []
+
+        if self.check_var1.get() == 1:
+
+            # Save Masked Images
+            print("Saving Masked Images...")
+            directory_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_masked')
+            print(directory_path)
+            if not os.path.exists(directory_path) and os.path.isdir(directory_path):
+                print("Please mask images first.")
+                return
+            selected_options.append('temp_masked')
+
+        if self.check_var2.get() == 1:
+
+            # Save Masked Images
+            print("Saving Bounding Box Coordinates...")
+            directory_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_coordinates')
+            print(directory_path)
+            if not os.path.exists(directory_path) and os.path.isdir(directory_path):
+                print("Please Detect images first.")
+                return
+            selected_options.append('temp_coordinates')
+
+        if self.check_var3.get() == 1:
+            # Save Bounding Box Images
+            print("Saving Bounding Box Images...")
+            directory_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_detected')
+            if not os.path.exists(directory_path) and os.path.isdir(directory_path):
+                print("Please detect images first.")
+                return
+            selected_options.append('temp_detected')
+
+        if self.check_var4.get() == 1:
+            # Save Anonymized Images
+            print("Saving Anonymized Images...")
+            directory_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_anonymized')
+            if not os.path.exists(directory_path) and os.path.isdir(directory_path):
+                print("Please anonymize images first.")
+                return
+            selected_options.append('temp_anonymized')
+
+        if not selected_options:
+            print("No options selected.")
             return
 
-        # Ask user to select the destination folder for saving anonymized images
+        self.save_selected_images(selected_options)
+
+    def save_selected_images(self, selected_options):
+        # Specify fixed folder names for each option
+        folder_names = {
+            'temp_masked': 'masked_images',
+            'temp_detected': 'detected_images',
+            'temp_anonymized': 'anonymized_images',
+            'temp_coordinates': 'bounding_box_coordinates'
+        }
+
+        # Ask user to select the destination folder for saving images
         save_folder = filedialog.askdirectory(title="Select Destination Folder")
         if not save_folder:
             return  # User canceled the operation
 
-        # Use threading to run the save_anonymized_images_script in the background
-        save_thread = threading.Thread(target=self.save_anonymized_images_script, args=(save_folder,))
+        # Use threading to run the saving process in the background
+        save_thread = threading.Thread(target=self.save_images_script, args=(selected_options, folder_names, save_folder))
         save_thread.start()
 
-    def save_anonymized_images_script(self, save_folder):
-        # Copy anonymized images to the selected destination folder
-        anonymized_folder_path = os.path.join(self.uploaded_folder_paths[-1], 'temp_anonymized')
-        if os.path.exists(anonymized_folder_path):
-            for file_name in os.listdir(anonymized_folder_path):
-                file_path = os.path.join(anonymized_folder_path, file_name)
-                if os.path.isfile(file_path):
-                    destination_path = os.path.join(save_folder, file_name)
-                    shutil.copy(file_path, destination_path)
-            print("Anonymized images saved successfully.")
-        else:
-            print("Anonymized images folder not found.")
+    def save_images_script(self, selected_options, folder_names, save_folder):
+        # Copy selected images to the selected destination folder
+        for option in selected_options:
+            source_folder = os.path.join(self.uploaded_folder_paths[-1], option)
+            if os.path.exists(source_folder):
+                destination_folder_name = folder_names.get(option, option)
+                destination_folder = os.path.join(save_folder, destination_folder_name)
+                os.makedirs(destination_folder, exist_ok=True)  # Create destination folder if not exists
+                for file_name in os.listdir(source_folder):
+                    file_path = os.path.join(source_folder, file_name)
+                    if os.path.isfile(file_path):
+                        destination_path = os.path.join(destination_folder, file_name)
+                        shutil.copy(file_path, destination_path)
+                print(f"{option.capitalize()} images saved successfully.")
+            else:
+                print(f"{option.capitalize()} images folder not found.")
 
     ###################################################################################################################
     def upload_images(self):
         folder_path = filedialog.askdirectory(title="Select Folder")
         if folder_path:
+            # Clear the large canvases
+            self.large_image_canvas1.delete("all")
+            self.large_image_canvas2.delete("all")
+            self.large_image_canvas3.delete("all")
+
             self.uploaded_folder_paths.append(folder_path)  # Append the folder path to the list
             # Use threading to run the display_images method in the background
             display_thread = threading.Thread(target=self.display_images, args=(folder_path,))
@@ -256,6 +443,9 @@ class MedicalImageAnonymizationTool:
         if not self.uploaded_folder_paths[-1]:
             print("Please upload images first.")
             return
+
+        # Set detection flag to True
+        self.detection_in_progress = True
 
         # Initialize progress bar
         self.progress_bar['value'] = 0
@@ -296,10 +486,18 @@ class MedicalImageAnonymizationTool:
         self.progress_label.pack_forget()
         self.progress_bar.pack_forget()
 
+        # Set detection flag to False after completion
+        self.detection_in_progress = False
+
     ###################################################################################################################
     def anonymize_images(self):
         if not self.uploaded_folder_paths[-1]:  # modify this to detected images path
             print("Please detect images first.")
+            return
+
+        # Check if the detection process is active
+        if self.progress_text_var.get() != "Detection Done":
+            print("Detection process is active. Cannot anonymize images while detection is in progress.")
             return
 
         # Initialize progress bar
@@ -307,7 +505,8 @@ class MedicalImageAnonymizationTool:
         self.progress_bar.update()
 
         # Use threading to run the anonymization script in the background
-        anonymization_thread = threading.Thread(target=self.run_anonymization_script, args=(self.uploaded_folder_paths[-1],))
+        anonymization_thread = threading.Thread(target=self.run_anonymization_script,
+                                                args=(self.uploaded_folder_paths[-1],))
         anonymization_thread.start()
 
     def run_anonymization_script(self, folder_path):
@@ -324,7 +523,7 @@ class MedicalImageAnonymizationTool:
         for index, image_file in enumerate(image_files, start=1):
             try:
                 anonymize.run_anonymization(os.path.join(folder_path, image_file),
-                                            os.path.join(folder_path, 'temp_detected',
+                                            os.path.join(folder_path, 'temp_masked',
                                                          f'mask_{image_file}'))  # Call the detection function
                 print(f"Text anonymization script completed successfully for image: {image_file}")
             except Exception as e:
@@ -520,6 +719,8 @@ class MedicalImageAnonymizationTool:
         for folder_path in self.uploaded_folder_paths:
             detected_images_path = os.path.join(folder_path, 'temp_detected')
             anonymized_images_path = os.path.join(folder_path, 'temp_anonymized')
+            masked_images_path = os.path.join(folder_path, 'temp_masked')
+            coordinates_images_path = os.path.join(folder_path, 'temp_coordinates')
 
             # Check if the 'temp_detected' directory exists, and delete it
             if os.path.exists(detected_images_path):
@@ -529,10 +730,15 @@ class MedicalImageAnonymizationTool:
             if os.path.exists(anonymized_images_path):
                 shutil.rmtree(anonymized_images_path)
 
+            # Check if the 'masked_anonymized' directory exists, and delete it
+            if os.path.exists(masked_images_path):
+                shutil.rmtree(masked_images_path)
+
+            # Check if the 'masked_anonymized' directory exists, and delete it
+            if os.path.exists(coordinates_images_path):
+                shutil.rmtree(coordinates_images_path)
+
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = MedicalImageAnonymizationTool(root)
-    atexit.register(app.cleanup)
-    atexit.register(delete_lock)
-    root.mainloop()
+    app = MainApplication()
+    app.run()
